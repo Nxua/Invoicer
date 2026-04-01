@@ -55,6 +55,9 @@ router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Invoice not found' });
   const merged = { ...existing, ...req.body };
+  const lineItems = Array.isArray(merged.line_items)
+    ? JSON.stringify(merged.line_items)
+    : merged.line_items; // already a string from the DB row
   db.prepare(`
     UPDATE invoices SET
       invoice_number=@invoice_number, status=@status, client_name=@client_name,
@@ -63,7 +66,24 @@ router.put('/:id', (req, res) => {
       subtotal=@subtotal, vat_rate=@vat_rate, vat_amount=@vat_amount, total_amount=@total_amount,
       payment_details=@payment_details, notes=@notes
     WHERE id=@id
-  `).run({ ...merged, id: req.params.id, line_items: JSON.stringify(merged.line_items || []) });
+  `).run({
+    id: req.params.id,
+    invoice_number: merged.invoice_number,
+    status: merged.status,
+    client_name: merged.client_name,
+    client_surname: merged.client_surname,
+    client_email: merged.client_email,
+    client_address: merged.client_address,
+    issue_date: merged.issue_date,
+    due_date: merged.due_date,
+    line_items: lineItems,
+    subtotal: merged.subtotal,
+    vat_rate: merged.vat_rate,
+    vat_amount: merged.vat_amount,
+    total_amount: merged.total_amount,
+    payment_details: merged.payment_details,
+    notes: merged.notes,
+  });
   res.json(parseInvoice(db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id)));
 });
 

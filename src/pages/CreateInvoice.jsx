@@ -100,7 +100,7 @@ export default function CreateInvoice() {
     setSaving(true);
     const data = { ...form, subtotal, vat_amount: vatAmount, total_amount: totalAmount };
     const created = await api.invoices.create(data);
-    navigate(`/invoices/${created.id}`);
+    navigate(`/portal/invoices/${created.id}`);
   };
 
   const formatCurrency = (val) =>

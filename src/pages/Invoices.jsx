@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -18,22 +19,38 @@ const STATUS_OPTIONS = [
 function StatusDropdown({ invoiceId, currentStatus, onStatusChange }) {
   const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef(null);
+
+  const handleToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setOpen((o) => !o);
+  };
 
   const handleSelect = async (e, newStatus) => {
-    e.preventDefault(); // don't navigate to invoice detail
+    e.preventDefault();
     e.stopPropagation();
     if (newStatus === currentStatus) { setOpen(false); return; }
     setUpdating(true);
-    await api.invoices.update(invoiceId, { status: newStatus });
-    onStatusChange(invoiceId, newStatus);
-    setUpdating(false);
-    setOpen(false);
+    try {
+      await api.invoices.update(invoiceId, { status: newStatus });
+      onStatusChange(invoiceId, newStatus);
+    } finally {
+      setUpdating(false);
+      setOpen(false);
+    }
   };
 
   return (
-    <div className="relative" onClick={(e) => e.preventDefault()}>
+    <div onClick={(e) => e.preventDefault()}>
       <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o); }}
+        ref={buttonRef}
+        onClick={handleToggle}
         disabled={updating}
         className="flex items-center"
         title="Change status"
@@ -45,13 +62,18 @@ function StatusDropdown({ invoiceId, currentStatus, onStatusChange }) {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-10" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }} />
+          <div
+            className="fixed inset-0 z-[200]"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
+          />
           {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-1.5 w-36 rounded-xl overflow-hidden z-20"
-            style={{ background: 'rgba(10,15,35,0.95)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(24px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)' }}>
+          <div
+            className="fixed z-[201] w-36 rounded-xl overflow-hidden"
+            style={{ top: pos.top, right: pos.right, background: 'rgba(10,15,35,0.95)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(24px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10)' }}
+          >
             {STATUS_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -64,7 +86,8 @@ function StatusDropdown({ invoiceId, currentStatus, onStatusChange }) {
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

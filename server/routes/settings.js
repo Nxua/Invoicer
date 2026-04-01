@@ -51,7 +51,21 @@ router.put('/:id', (req, res) => {
       company_vat_number=@company_vat_number, default_vat_rate=@default_vat_rate,
       default_payment_details=@default_payment_details, disclaimer=@disclaimer
     WHERE id=@id
-  `).run({ ...merged, id: req.params.id });
+  `).run({
+    id: req.params.id,
+    company_name: merged.company_name || '',
+    company_logo: merged.company_logo || '',
+    company_email: merged.company_email || '',
+    company_phone: merged.company_phone || '',
+    company_address: merged.company_address || '',
+    company_city: merged.company_city || '',
+    company_country: merged.company_country || '',
+    company_registration: merged.company_registration || '',
+    company_vat_number: merged.company_vat_number || '',
+    default_vat_rate: merged.default_vat_rate ?? 15,
+    default_payment_details: merged.default_payment_details || '',
+    disclaimer: merged.disclaimer || '',
+  });
   res.json(db.prepare('SELECT * FROM company_settings WHERE id = ?').get(req.params.id));
 });
 

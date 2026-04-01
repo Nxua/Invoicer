@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { FloatingInput } from "@/components/ui/floating-input";
-import { Save, Upload, Building2, Mail, MapPin, Shield, CreditCard } from "lucide-react";
+import { Save, Upload, Building2, Mail, MapPin, Shield, CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 
 // Same GlassCard as in CreateInvoice
@@ -91,14 +91,19 @@ export default function CompanySettings() {
 
   const handleSave = async () => {
     setSaving(true);
-    if (existingId) {
-      await api.settings.update(existingId, form);
-    } else {
-      const created = await api.settings.create(form);
-      setExistingId(created.id);
+    try {
+      if (existingId) {
+        await api.settings.update(existingId, form);
+      } else {
+        const created = await api.settings.create(form);
+        setExistingId(created.id);
+      }
+      toast.success("Company settings saved");
+    } catch (err) {
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
     }
-    toast.success("Company settings saved");
-    setSaving(false);
   };
 
   if (loading) {
@@ -129,12 +134,21 @@ export default function CompanySettings() {
         <div className="flex items-start gap-6">
           <div className="flex flex-col items-center gap-2 flex-shrink-0">
             {form.company_logo ? (
-              <img
-                src={form.company_logo}
-                alt="Logo"
-                className="w-20 h-20 rounded-xl object-contain"
-                style={{ border: "1px solid rgba(255,255,255,0.12)" }}
-              />
+              <div className="relative">
+                <img
+                  src={form.company_logo}
+                  alt="Logo"
+                  className="w-20 h-20 rounded-xl object-contain"
+                  style={{ border: "1px solid rgba(255,255,255,0.12)" }}
+                />
+                <button
+                  onClick={() => updateField("company_logo", "")}
+                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-colors"
+                  title="Remove logo"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </div>
             ) : (
               <div
                 className="w-20 h-20 rounded-xl flex items-center justify-center"
@@ -146,7 +160,7 @@ export default function CompanySettings() {
             <label className="cursor-pointer">
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               <span className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
-                <Upload className="w-3 h-3" /> Upload
+                <Upload className="w-3 h-3" /> {form.company_logo ? "Replace" : "Upload"}
               </span>
             </label>
           </div>
@@ -163,10 +177,11 @@ export default function CompanySettings() {
 
       {/* Contact */}
       <GlassCard icon={Mail} title="Contact" accentColor="rgba(124,58,237,0.20)">
+        <p className="text-xs text-slate-400 -mt-2 mb-3">Your business contact details — shown on invoices. Customer emails are entered per invoice.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FloatingInput
             id="company_email"
-            label="Email"
+            label="Your Business Email"
             type="email"
             value={form.company_email}
             onChange={(e) => updateField("company_email", e.target.value)}
