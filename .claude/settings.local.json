@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/lukes/Invoicer -name .env* -o -name *.env)"
+    ]
+  }
+}
